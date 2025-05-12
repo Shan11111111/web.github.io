@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>朝日朝食｜冰品</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f0f0f0;
+      padding-bottom: 70px; /* 給 fixed 購物車底部空間 */
+    }
+
+    nav {
+      background: #333;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+
+    nav a {
+      color: white;
+      margin: 0 10px;
+      text-decoration: none;
+    }
+
+    h1, p {
+      text-align: center;
+    }
+
+    .product-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      padding: 10px;
+    }
+
+    .product-item {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      width: 200px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .product-item img {
+      width: 100%;
+      height: 150px;
+      border-radius: 5px;
+      object-fit: cover;
+    }
+
+    .product-item button {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      margin-top: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #cartToggleBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    #cartSection {
+      display: none;
+      background: white;
+      border-top: 2px solid #ccc;
+      padding: 20px;
+      position: fixed;
+      right: 0;
+      top: 70px;
+      width: 300px;
+      max-height: 60%;
+      overflow-y: auto;
+      box-shadow: -2px 2px 10px rgba(0,0,0,0.1);
+      z-index: 999;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+    }
+
+    .cart-item button {
+      background: #dc3545;
+      border: none;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #checkoutBtn {
+      width: 100%;
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #cartTotalBar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #333;
+      color: white;
+      text-align: center;
+      padding: 15px;
+      font-size: 18px;
+    }
+
+    @media (max-width: 600px) {
+      .product-item {
+        width: 90%;
+      }
+
+      #cartSection {
+        width: 100%;
+        left: 0;
+        top: 60px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<nav>
+  <a href="home.htm">首頁</a>
+  <a href="contact.htm">聯絡</a>
+</nav>
+
+<h1>朝日朝食｜冰品</h1>
+<p>天然水果製作，夏日消暑首選！</p>
+
+<!-- 商品清單 -->
+<div class="product-list" id="productList"></div>
+
+<!-- 購物車按鈕 -->
+<button id="cartToggleBtn">🛒 查看購物車</button>
+
+<!-- 購物車內容區 -->
+<div id="cartSection">
+  <h3>🛒 購物車內容</h3>
+  <div id="cartItems">尚無商品</div>
+  <button id="checkoutBtn">✔️ 結帳</button>
+</div>
+
+<!-- 固定底部總金額 -->
+<div id="cartTotalBar">總金額：$0</div>
+
+<script>
+  const products = [
+    { name: "牛奶雪花冰", price: 65, image: "milk.jpg" },
+    { name: "黑糖雪花冰", price: 65, image: "none.png" },
+    { name: "草莓雪花冰", price: 70, image: "strawberry.jpg" },
+    { name: "哈密瓜雪花冰", price: 70, image: "none.png" },
+    { name: "椰奶雪花冰", price: 70, image: "none.png" },
+    { name: "芒果雪花冰", price: 70, image: "mango.jpg" },
+    { name: "仙草雪花冰", price: 65, image: "none.png" }
+  ];
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  const productList = document.getElementById('productList');
+  const cartItems = document.getElementById('cartItems');
+  const cartTotalBar = document.getElementById('cartTotalBar');
+  const cartToggleBtn = document.getElementById('cartToggleBtn');
+  const cartSection = document.getElementById('cartSection');
+  const checkoutBtn = document.getElementById('checkoutBtn');
+
+  function renderProducts() {
+    productList.innerHTML = '';
+    products.forEach((p, index) => {
+      const div = document.createElement('div');
+      div.className = 'product-item';
+      div.innerHTML = `
+        <img src="${p.image}" alt="${p.name}">
+        <h3>${p.name}</h3>
+        <p>價格：$${p.price}</p>
+        <button onclick="addToCart(${index})">加入購物車</button>
+      `;
+      productList.appendChild(div);
+    });
+  }
+
+  function addToCart(index) {
+    cart.push(products[index]);
+    saveCart();
+    updateCartDisplay();
+  }
+
+  function removeFromCart(i) {
+    cart.splice(i, 1);
+    saveCart();
+    updateCartDisplay();
+  }
+
+  function saveCart() {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }
+
+  function updateCartDisplay() {
+    if (cart.length === 0) {
+      cartItems.innerHTML = '尚無商品';
+    } else {
+      cartItems.innerHTML = '';
+      cart.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.className = 'cart-item';
+        div.innerHTML = `
+          <span>${item.name} - $${item.price}</span>
+          <button onclick="removeFromCart(${i})">刪除</button>
+        `;
+        cartItems.appendChild(div);
+      });
+    }
+
+    const total = cart.reduce((sum, item) => sum + item.price, 0);
+    cartTotalBar.innerText = `總金額：$${total}`;
+  }
+
+  cartToggleBtn.addEventListener('click', () => {
+    cartSection.style.display = cartSection.style.display === 'block' ? 'none' : 'block';
+  });
+
+  checkoutBtn.addEventListener('click', () => {
+    if (cart.length === 0) return alert('購物車是空的喔！');
+    if (confirm('確定結帳(請口頭和老闆娘點餐)？')) {
+      cart = [];
+      saveCart();
+      updateCartDisplay();
+      alert('老闆娘需要口頭喊單喔！該內容不會送給老闆娘~');
+    }
+  });
+
+  renderProducts();
+  updateCartDisplay();
+</script>
+
+</body>
+</html>
